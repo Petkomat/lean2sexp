@@ -1,6 +1,7 @@
 import Lean
 import Sexp
 
+
 unsafe def main (args : List String) : IO Unit := do
   let srcDir := System.FilePath.mk $ (args.get? 0).getD "build/lib"
   let outDir := System.FilePath.mk $ (args.get? 1).getD "sexp"
@@ -19,8 +20,11 @@ unsafe def main (args : List String) : IO Unit := do
       | .some stemFile =>
         let baseFile := System.FilePath.mk $ baseName.replace "/" "."
         let outFile := System.FilePath.join outDir (baseFile.withExtension "sexp")
-        IO.println s!"[{k}/{totalFiles}] {srcFile} -> {outFile}"
-        let (data, region) ← Lean.readModuleData srcFile
-        let moduleName := (stemFile.splitOn "/").foldl Lean.Name.str Lean.Name.anonymous
-        IO.FS.writeFile outFile $ toString $ Sexp.fromModuleData moduleName data
-        region.free
+        if ← System.FilePath.pathExists outFile then
+          IO.println s!"skipping {srcFile} because {outFile} already exists"
+        else  
+          IO.println s!"[{k}/{totalFiles}] {srcFile} -> {outFile}"
+          let (data, region) ← Lean.readModuleData srcFile
+          let moduleName := (stemFile.splitOn "/").foldl Lean.Name.str Lean.Name.anonymous
+          IO.FS.writeFile outFile $ toString $ Sexp.fromModuleData moduleName data
+          region.free
